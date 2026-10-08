@@ -303,9 +303,16 @@ class Passes(unittest.TestCase):
         fake = Fake(made(45))
         fake.token = "t"  # as an Asker with a token
         state = {}
-        with mock.patch.object(tracker, "TOKEN_BACKFILL_PAGES", 5):
+        fake.lists["issues"] = [
+            {"code": f"NIXPKGS-{i}", "status": "A", "title": "t"} for i in range(45)
+        ]
+        with (
+            mock.patch.object(tracker, "TOKEN_BACKFILL_PAGES", 5),
+            mock.patch.object(tracker, "TOKEN_ISSUE_PAGES", 5),
+        ):
             tracker.update(state, fake)
         self.assertEqual(len(state["suggestions"]), 45)  # all 5 pages in one run
+        self.assertEqual(len(state["issues"]), 45)  # issues likewise
 
     def test_by_package(self):
         state = {}

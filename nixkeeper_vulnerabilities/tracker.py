@@ -19,7 +19,8 @@ run until all are read; after that, the newest pages each run until one
 brings nothing new (HEAD_PAGES at most), and a slow rotation through the
 rest (ROTATE_PAGES a run: about a week a pass), which notices changes that
 didn't move a suggestion to the front. Issues, small, rotate ISSUE_PAGES a
-run (about a day a pass). Something not seen for two whole passes is gone
+run (about a day a pass; TOKEN_ISSUE_PAGES with a token, about 5
+runs). Something not seen for two whole passes is gone
 (the list moves while it's read, so one pass can miss an item)."""
 
 import os
@@ -62,6 +63,9 @@ TOKEN_BACKFILL_PAGES = 150
 HEAD_PAGES = 5
 ROTATE_PAGES = 3
 ISSUE_PAGES = 15
+# Issue pages are small (about 3 KB): with a token, 60 a run (a pass in
+# about 5 runs instead of 20).
+TOKEN_ISSUE_PAGES = 60
 
 # The state's version, read again from the start when older: 2 keeps
 # packages with no channel data (1 left them out); 3 reads the tracker's
@@ -301,7 +305,9 @@ def update(state, get=None):
     that can't be read further keeps what was read of it, and the other is
     still read."""
     get = get or Asker()
-    backfill = TOKEN_BACKFILL_PAGES if getattr(get, "token", None) else BACKFILL_PAGES
+    token = getattr(get, "token", None)
+    backfill = TOKEN_BACKFILL_PAGES if token else BACKFILL_PAGES
+    issue_pages = TOKEN_ISSUE_PAGES if token else ISSUE_PAGES
     errors = []
     found = state.setdefault("suggestions", {})
     issues = state.setdefault("issues", {})
@@ -349,7 +355,7 @@ def update(state, get=None):
         issues[i["code"]] = {**issue(i), "seen": i_cycle["n"]}
 
     try:
-        counted(get, ISSUES, i_cycle, ISSUE_PAGES, take_issue)
+        counted(get, ISSUES, i_cycle, issue_pages, take_issue)
         forget_unseen(issues, i_cycle)
     except READ_ERRORS as e:
         errors.append(f"issues: {e}")
