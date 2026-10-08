@@ -72,6 +72,19 @@ class Token(unittest.TestCase):
         self.assertEqual(sent[0].get_header("Authorization"), "Bearer secret")
         self.assertEqual(paused, [fetch.TOKEN_PAUSE])
 
+    def test_patch_with_an_empty_body(self):
+        sent = []
+        with (
+            mock.patch.object(
+                fetch.urllib.request,
+                "urlopen",
+                side_effect=lambda req, timeout: sent.append(req) or Answer(b"{}"),
+            ),
+            mock.patch.object(fetch, "_pace"),
+        ):
+            REAL["get_json"]("https://x", "t", method="PATCH")
+        self.assertEqual((sent[0].get_method(), sent[0].data), ("PATCH", b"{}"))
+
     def test_refused(self):
         expired = urllib.error.HTTPError("https://x", 401, "Unauthorized", None, None)
         with (

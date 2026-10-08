@@ -102,8 +102,9 @@ On the `data` branch:
   and packages the digest has, whether every list has been read through
   at least once (`complete`; until then the digest has only part of it),
   where the reading is (`pass`), what stopped the last run's reading, if
-  anything did (`stopped`), and whether its token was `used` or `refused`
-  (`token`, when one is set); for OSV, the nixpkgs index it
+  anything did (`stopped`), and with a token, whether it was `used` or
+  `refused`, when it expires and whether it was renewed (`token`,
+  `tokenExpiry`, `tokenRenewal`; see "A tracker token"); for OSV, the nixpkgs index it
   matched (`nixpkgsIndexedAt`), how many nixpkgs packages are in the sets
   it covers (`inSets`), each ecosystem's advisories for nixpkgs' names
   (`ecosystems`), and how many packages and advisories match.
@@ -132,10 +133,17 @@ it sooner:
    Actions). The workflow passes it to the digest, which sends it to the
    tracker only.
 
-A token lasts 30 days. When it's refused (expired, or replaced), the run
-goes on without it at 24 a minute, and `meta.json`'s `tracker.token` says
-`refused` (`used` while it works): nothing breaks, it's only slower. Run
-locally with it: `NIXKEEPER_TRACKER_TOKEN=... python3 -m
+A token lasts 30 days, and the digest keeps it alive: each run asks when
+it expires, and within a week of that extends it by 30 days from now (the
+tracker allows that with the token itself). So it only stops working if
+it's revoked or replaced (creating another at `/user/tokens` replaces
+it), or the digest doesn't run for a month. Then the run goes on without
+it at 24 a minute, the digest is published, and the workflow's last step
+("Check the tracker token") fails the run, so GitHub tells you; it fails
+too when the token couldn't be extended, saying when it expires.
+`meta.json`'s `tracker` says `token` (`used` or `refused`), `tokenExpiry`,
+and `tokenRenewal` when it was extended (`renewed`) or couldn't be
+(`failed`). Run locally with it: `NIXKEEPER_TRACKER_TOKEN=... python3 -m
 nixkeeper_vulnerabilities data`.
 
 ## Running it

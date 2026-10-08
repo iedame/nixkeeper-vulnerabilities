@@ -67,19 +67,24 @@ class TokenRefused(Exception):
     revoked."""
 
 
-def get_json(url, token=None):
+def get_json(url, token=None, method="GET"):
     """url's JSON answer, at most one request a PAUSE (TOKEN_PAUSE with a
     token, sent as "Authorization: Bearer"); refused for asking too often
     (429), asked again after the wait it says (RETRIES times). Raises
     TokenRefused when the token is, and on any other failure
     (urllib.error.URLError, TimeoutError, ValueError): what wasn't read is
-    read next run."""
+    read next run. method: another than GET (PATCH, with an empty JSON
+    body)."""
     headers = {"User-Agent": USER_AGENT, "Accept": "application/json"}
     if token:
         headers["Authorization"] = f"Bearer {token}"
+    body = None
+    if method != "GET":
+        headers["Content-Type"] = "application/json"
+        body = b"{}"
     for attempt in range(RETRIES + 1):
         _pace(TOKEN_PAUSE if token else PAUSE)
-        req = urllib.request.Request(url, headers=headers)
+        req = urllib.request.Request(url, data=body, headers=headers, method=method)
         deadline = time.monotonic() + DEADLINE
         try:
             with urllib.request.urlopen(req, timeout=TIMEOUT) as resp:

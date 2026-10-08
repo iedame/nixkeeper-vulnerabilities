@@ -25,6 +25,7 @@ run (about a day a pass). Something not seen for two whole passes is gone
 import os
 import sys
 import urllib.error
+from datetime import datetime, timedelta
 
 from . import fetch
 
@@ -38,6 +39,12 @@ TOKEN_ENV = "NIXKEEPER_TRACKER_TOKEN"
 READ_ERRORS = (urllib.error.URLError, OSError, ValueError, KeyError)
 
 TRACKER_URL = "https://tracker.security.nixos.org"
+# The token's own expiry (GET), and extending it by 30 days from now
+# (PATCH): the tracker allows it with the token itself.
+TOKEN_URL = f"{TRACKER_URL}/api/v1/tokens/me"
+# Extended when this close to expiring: a day of failing runs or a week of
+# none still leaves it valid.
+RENEW_WITHIN = timedelta(days=7)
 SUGGESTIONS = f"{TRACKER_URL}/api/v1/suggestions?status=published"
 ISSUES = f"{TRACKER_URL}/api/v1/issues"
 # The channel nixkeeper follows.
@@ -162,24 +169,83 @@ class Asker:
     def __init__(self, token=None):
         self.token = token if token is not None else os.environ.get(TOKEN_ENV)
         self.refused = False
+        self.expiry = None
+        self.renewal = None  # "renewed", "failed", or None (not needed)
+
+    def _refused(self, e):
+        print(
+            f"::warning::Security tracker: the token was refused ({e}): "
+            "going on without it, 30 requests a minute",
+            file=sys.stderr,
+        )
+        self.token, self.refused = None, True
+
+    def renew(self, now):
+        """Keep the token alive: when it expires within RENEW_WITHIN, extend
+        it (30 days from now). A token refused here is dropped as when
+        reading; any other failure leaves it as it is, renewal "failed"."""
+        if not self.token:
+            return
+        try:
+            info = fetch.get_json(TOKEN_URL, self.token)
+            expiry = datetime.fromisoformat(info["expiry"])
+            if expiry - now < RENEW_WITHIN:
+                info = fetch.get_json(TOKEN_URL, self.token, method="PATCH")
+                expiry = datetime.fromisoformat(info["expiry"])
+                self.renewal = "renewed"
+                print(f"Security tracker: token extended to {expiry:%Y-%m-%d}.")
+            self.expiry = expiry
+        except fetch.TokenRefused as e:
+            self._refused(e)
+        except (urllib.error.URLError, OSError, ValueError, KeyError) as e:
+            self.renewal = "failed"
+            print(
+                f"::warning::Security tracker: couldn't renew the token ({e})",
+                file=sys.stderr,
+            )
 
     def __call__(self, url):
         if self.token:
             try:
                 return fetch.get_json(url, self.token)
             except fetch.TokenRefused as e:
-                print(
-                    f"::warning::Security tracker: the token was refused ({e}): "
-                    "going on without it, 30 requests a minute",
-                    file=sys.stderr,
-                )
-                self.token, self.refused = None, True
+                self._refused(e)
         return fetch.get_json(url)
 
     def said(self):
         """What meta.json says of the token: "used", "refused", or None
         (none set)."""
         return "refused" if self.refused else "used" if self.token else None
+
+    def meta(self):
+        """meta.json's token fields: "token", and while it's used, its
+        "tokenExpiry" and, when tried this run, "tokenRenewal"."""
+        if not self.said():
+            return {}
+        return {
+            "token": self.said(),
+            **({"tokenExpiry": f"{self.expiry:%Y-%m-%d}"} if self.expiry else {}),
+            **({"tokenRenewal": self.renewal} if self.renewal else {}),
+        }
+
+
+def token_trouble(meta):
+    """What's wrong with the tracker token, by meta.json (refused, or not
+    renewed), for the workflow to fail its run on; None when nothing is
+    (or no token is set)."""
+    tracker = meta.get("tracker") or {}
+    if tracker.get("token") == "refused":
+        return (
+            "the tracker token was refused (expired, revoked or replaced): "
+            f"create one at {TRACKER_URL}/user/tokens and update the "
+            f"{TOKEN_ENV} secret; the digest goes on at 30 requests a minute"
+        )
+    if tracker.get("tokenRenewal") == "failed":
+        return (
+            "the tracker token couldn't be renewed: it expires on "
+            f"{tracker.get('tokenExpiry') or 'an unknown day'}"
+        )
+    return None
 
 
 def update(state, get=None):

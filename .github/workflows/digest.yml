@@ -49,3 +49,8 @@ jobs:
       - name: Publish the digest if it changed
         run: |
           bash scripts/data-branch.sh publish "digest: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+      # After publishing: a refused or unrenewable tracker token fails the
+      # run (GitHub tells its owner), the digest already out, read without it.
+      - name: Check the tracker token
+        run: python3 -m nixkeeper_vulnerabilities --check-token data
