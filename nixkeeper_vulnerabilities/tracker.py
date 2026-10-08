@@ -47,8 +47,13 @@ TOKEN_URL = f"{TRACKER_URL}/api/v1/tokens/me"
 RENEW_WITHIN = timedelta(days=7)
 SUGGESTIONS = f"{TRACKER_URL}/api/v1/suggestions?status=published"
 ISSUES = f"{TRACKER_URL}/api/v1/issues"
-# The channel nixkeeper follows.
+# The channel nixkeeper follows (the tracker's "channels", until
+# 2026-10-08).
 CHANNEL = "nixos-unstable"
+# Since 2026-10-08 the tracker evaluates git branches ("branches": master,
+# release-26.05, ...): nixos-unstable's if it lists it, else master, which
+# nixos-unstable is built from (a few days ahead of it).
+BRANCHES = ("nixos-unstable", "master")
 
 BACKFILL_PAGES = 40
 # With a token (NIXKEEPER_TRACKER_TOKEN: four times the requests a minute),
@@ -58,10 +63,10 @@ HEAD_PAGES = 5
 ROTATE_PAGES = 3
 ISSUE_PAGES = 15
 
-# The state's version: 2 keeps the packages of suggestions the tracker no
-# longer evaluates on a channel (1 left them out), so a state of 1 is read
-# again from the start.
-VERSION = 2
+# The state's version, read again from the start when older: 2 keeps
+# packages with no channel data (1 left them out); 3 reads the tracker's
+# "branches" (2026-10-08: 2 read "channels", gone, so every status null).
+VERSION = 3
 # A package's status on a channel, when its sub-branches differ: the worst.
 RANK = {"unaffected": 0, "unknown": 1, "affected": 2}
 # Issue statuses, as the API gives them.
@@ -76,9 +81,42 @@ ISSUE_STATUS = {
 CVSS = ("cvssV4_0", "cvssV3_1", "cvssV3_0", "cvssV2_0")
 
 
+def branch_status(found):
+    """{"version", "status"} of a package on one branch."""
+    status = found.get("status")
+    return {
+        "version": found.get("version"),
+        "status": status if status in RANK else "unknown",
+    }
+
+
+def on_branch(package):
+    """{"version", "status", "branch"} of a suggestion's package on the
+    first of BRANCHES the tracker evaluated it on (its "branches"), with
+    "branches": every branch it was evaluated on (master, release-26.05,
+    and the next release's when it comes, by name: none is named here), so
+    a reader can tell whether a stable release is still affected. Only on
+    other branches: version, status and branch null, their "branches"
+    still; on none: None."""
+    branches = {
+        name: branch_status(found)
+        for name, found in sorted((package.get("branches") or {}).items())
+        if found
+    }
+    for name in BRANCHES:
+        if name in branches:
+            return {**branches[name], "branch": name, "branches": branches}
+    if branches:
+        return {"version": None, "status": None, "branch": None, "branches": branches}
+    return None
+
+
 def on_channel(package, channel=CHANNEL):
     """{"version", "status"} of a suggestion's package on channel, or None
-    when the tracker doesn't have it there."""
+    when the tracker doesn't have it there: its "branches" since
+    2026-10-08 (on_branch), its "channels" before."""
+    if "branches" in package:
+        return on_branch(package)
     found = (package.get("channels") or {}).get(channel)
     if not found:
         return None
@@ -108,9 +146,9 @@ def suggestion(s):
     title, severity, the affected products' version constraints as the CVE
     record gives them (so a reader can check a newer nixpkgs version
     itself), and its packages on CHANNEL."""
-    # Every package it names: an older suggestion's have no channel data
-    # any more (the tracker stops evaluating them), but are its packages
-    # still: version and status null.
+    # Every package it names: one the tracker has no status for on
+    # nixos-unstable or master (not evaluated there) is its package still:
+    # version and status null.
     packages = {
         attr: on_channel(package) or {"version": None, "status": None}
         for attr, package in sorted((s.get("packages") or {}).items())
@@ -331,7 +369,9 @@ def digest(state):
     packages = {}
     for key, s in suggestions.items():
         for attr, on in s["packages"].items():
-            packages.setdefault(attr, []).append({"suggestion": key, **on})
+            # Every branch's status is in the suggestion: not repeated here.
+            brief = {k: v for k, v in on.items() if k != "branches"}
+            packages.setdefault(attr, []).append({"suggestion": key, **brief})
     return {
         "suggestions": suggestions,
         "issues": {

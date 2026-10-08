@@ -1,0 +1,167 @@
+{
+ "count": 2,
+ "next": null,
+ "previous": null,
+ "results": [
+  {
+   "id": 49914,
+   "status": "published",
+   "issue_code": "NIXPKGS-2026-2934",
+   "cve_id": "CVE-2026-107159",
+   "title": "MiniUPnPd through 2.3.11 Divide-by-Zero DoS via SSDP M-SEARCH MX Header",
+   "affected_products": [
+    {
+     "name": "miniupnpd",
+     "version_constraints": [
+      [
+       "affected",
+       "=<2.3.11"
+      ]
+     ],
+     "cpes": []
+    }
+   ],
+   "packages": {
+    "miniupnpd": {
+     "branches": {
+      "master": {
+       "version": "2.3.10",
+       "status": "affected",
+       "updated": "2026-10-08T04:27:03.631524Z",
+       "src_position": "https://github.com/NixOS/nixpkgs/blob/4164d3e0cab491e0973dd503757a4da25466f073/pkgs/by-name/mi/miniupnpd/package.nix#L123"
+      },
+      "release-26.05": {
+       "version": "2.3.10",
+       "status": "affected",
+       "updated": "2026-10-08T05:13:34.434605Z",
+       "src_position": "https://github.com/NixOS/nixpkgs/blob/f9bc8c856ea9cabbaedfad58d521a240ec71b3b6/pkgs/by-name/mi/miniupnpd/package.nix#L123"
+      }
+     },
+     "derivation_ids": [
+      239098485,
+      239098486,
+      239342419,
+      239342420
+     ],
+     "description": "Daemon that implements the UPnP Internet Gateway Device (IGD) specification"
+    },
+    "miniupnpd-nftables": {
+     "branches": {
+      "master": {
+       "version": "2.3.10",
+       "status": "affected",
+       "updated": "2026-10-08T04:27:03.631524Z",
+       "src_position": "https://github.com/NixOS/nixpkgs/blob/4164d3e0cab491e0973dd503757a4da25466f073/pkgs/by-name/mi/miniupnpd/package.nix#L123"
+      },
+      "release-26.05": {
+       "version": "2.3.10",
+       "status": "affected",
+       "updated": "2026-10-08T05:13:34.434605Z",
+       "src_position": "https://github.com/NixOS/nixpkgs/blob/f9bc8c856ea9cabbaedfad58d521a240ec71b3b6/pkgs/by-name/mi/miniupnpd/package.nix#L123"
+      }
+     },
+     "derivation_ids": [
+      239098487,
+      239098488,
+      239342421,
+      239342422
+     ],
+     "description": "Daemon that implements the UPnP Internet Gateway Device (IGD) specification"
+    }
+   },
+   "metrics": [
+    {
+     "format": "cvssV4_0",
+     "base_score": 7.1,
+     "base_severity": "HIGH"
+    },
+    {
+     "format": "cvssV3_1",
+     "base_score": 6.5,
+     "base_severity": "MEDIUM"
+    }
+   ]
+  },
+  {
+   "id": 49876,
+   "status": "published",
+   "issue_code": "NIXPKGS-2026-2933",
+   "cve_id": "CVE-2026-106065",
+   "title": "Gimp: gimp: heap buffer overflow in pcx export on oversized image dimensions",
+   "affected_products": [
+    {
+     "name": "gimp",
+     "version_constraints": [],
+     "cpes": [
+      "cpe:/o:redhat:enterprise_linux:10",
+      "cpe:/o:redhat:enterprise_linux:7",
+      "cpe:/o:redhat:enterprise_linux:9",
+      "cpe:/o:redhat:enterprise_linux:6"
+     ]
+    },
+    {
+     "name": "gimp:2.8/gimp",
+     "version_constraints": [],
+     "cpes": [
+      "cpe:/o:redhat:enterprise_linux:8"
+     ]
+    }
+   ],
+   "packages": {
+    "gimp": {
+     "branches": {
+      "master": {
+       "version": "3.2.6",
+       "status": "unknown",
+       "updated": "2026-10-08T04:27:03.631524Z",
+       "src_position": "https://github.com/NixOS/nixpkgs/blob/4164d3e0cab491e0973dd503757a4da25466f073/pkgs/applications/graphics/gimp/default.nix#L346"
+      },
+      "release-26.05": {
+       "version": "3.0.8",
+       "status": "unknown",
+       "updated": "2026-10-08T05:13:34.434605Z",
+       "src_position": "https://github.com/NixOS/nixpkgs/blob/f9bc8c856ea9cabbaedfad58d521a240ec71b3b6/pkgs/applications/graphics/gimp/default.nix#L368"
+      }
+     },
+     "derivation_ids": [
+      239042246,
+      239042247,
+      239273142,
+      239273143
+     ],
+     "description": "GNU Image Manipulation Program"
+    },
+    "gimp3": {
+     "branches": {
+      "master": {
+       "version": "3.2.6",
+       "status": "unknown",
+       "updated": "2026-10-08T04:27:03.631524Z",
+       "src_position": "https://github.com/NixOS/nixpkgs/blob/4164d3e0cab491e0973dd503757a4da25466f073/pkgs/applications/graphics/gimp/default.nix#L346"
+      },
+      "release-26.05": {
+       "version": "3.0.8",
+       "status": "unknown",
+       "updated": "2026-10-08T05:13:34.434605Z",
+       "src_position": "https://github.com/NixOS/nixpkgs/blob/f9bc8c856ea9cabbaedfad58d521a240ec71b3b6/pkgs/applications/graphics/gimp/default.nix#L368"
+      }
+     },
+     "derivation_ids": [
+      239042286,
+      239042287,
+      239273194,
+      239273195
+     ],
+     "description": "GNU Image Manipulation Program"
+    }
+   },
+   "metrics": [
+    {
+     "format": "cvssV3_1",
+     "base_score": 6.3,
+     "base_severity": "MEDIUM"
+    }
+   ]
+  }
+ ]
+}
