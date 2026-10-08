@@ -1,0 +1,321 @@
+{
+ "count": 3,
+ "next": null,
+ "previous": null,
+ "results": [
+  {
+   "id": 48625,
+   "status": "published",
+   "issue_code": "NIXPKGS-2026-2925",
+   "cve_id": "CVE-2026-75818",
+   "title": "Heap Buffer Overflow in GNU Aspell's prezip utility",
+   "affected_products": [
+    {
+     "name": "Aspell",
+     "version_constraints": [
+      [
+       "affected",
+       "<0.60.8.3"
+      ]
+     ],
+     "cpes": []
+    }
+   ],
+   "packages": {
+    "aspell": {
+     "channels": {
+      "nixos-26.05": {
+       "major_version": null,
+       "status": null,
+       "updated": null,
+       "uniform_versions": false,
+       "src_position": null,
+       "sub_branches": {
+        "nixos-26.05-small": {
+         "version": "0.60.8.2",
+         "status": "affected",
+         "src_position": "https://github.com/NixOS/nixpkgs/blob/c7ec7112449cb9c4b864b53b539b633d943298f8/pkgs/development/libraries/aspell/default.nix#L83",
+         "updated": "2026-10-07T05:17:02.225928Z"
+        }
+       }
+      },
+      "nixos-unstable": {
+       "major_version": null,
+       "status": null,
+       "updated": null,
+       "uniform_versions": false,
+       "src_position": null,
+       "sub_branches": {
+        "nixos-unstable-small": {
+         "version": "0.60.8.2",
+         "status": "affected",
+         "src_position": "https://github.com/NixOS/nixpkgs/blob/ac1faec44836a722f7b003834f367486ff9adfd1/pkgs/development/libraries/aspell/default.nix#L83",
+         "updated": "2026-10-07T04:27:24.727017Z"
+        }
+       }
+      }
+     },
+     "derivation_ids": [
+      238519909,
+      238519910,
+      238519911,
+      238747080,
+      238747081,
+      238747082,
+      238747083
+     ],
+     "description": "Spell checker for many languages"
+    }
+   },
+   "metrics": [
+    {
+     "format": "cvssV4_0",
+     "base_score": 1.8,
+     "base_severity": "LOW"
+    }
+   ]
+  },
+  {
+   "id": 48729,
+   "status": "published",
+   "issue_code": "NIXPKGS-2026-2924",
+   "cve_id": "CVE-2026-75820",
+   "title": "Integer Truncation Leading to Heap Corruption in GNU Aspell",
+   "affected_products": [
+    {
+     "name": "Aspell",
+     "version_constraints": [
+      [
+       "affected",
+       "<0.60.8.3"
+      ]
+     ],
+     "cpes": []
+    }
+   ],
+   "packages": {
+    "aspell": {
+     "channels": {
+      "nixos-26.05": {
+       "major_version": null,
+       "status": null,
+       "updated": null,
+       "uniform_versions": false,
+       "src_position": null,
+       "sub_branches": {
+        "nixos-26.05-small": {
+         "version": "0.60.8.2",
+         "status": "affected",
+         "src_position": "https://github.com/NixOS/nixpkgs/blob/c7ec7112449cb9c4b864b53b539b633d943298f8/pkgs/development/libraries/aspell/default.nix#L83",
+         "updated": "2026-10-07T05:17:02.225928Z"
+        }
+       }
+      },
+      "nixos-unstable": {
+       "major_version": null,
+       "status": null,
+       "updated": null,
+       "uniform_versions": false,
+       "src_position": null,
+       "sub_branches": {
+        "nixos-unstable-small": {
+         "version": "0.60.8.2",
+         "status": "affected",
+         "src_position": "https://github.com/NixOS/nixpkgs/blob/ac1faec44836a722f7b003834f367486ff9adfd1/pkgs/development/libraries/aspell/default.nix#L83",
+         "updated": "2026-10-07T04:27:24.727017Z"
+        }
+       }
+      }
+     },
+     "derivation_ids": [
+      238519909,
+      238519910,
+      238519911,
+      238747080,
+      238747081,
+      238747082,
+      238747083
+     ],
+     "description": "Spell checker for many languages"
+    }
+   },
+   "metrics": [
+    {
+     "format": "cvssV4_0",
+     "base_score": 1.8,
+     "base_severity": "LOW"
+    }
+   ]
+  },
+  {
+   "id": 48378,
+   "status": "published",
+   "issue_code": "NIXPKGS-2026-2923",
+   "cve_id": "CVE-2026-105758",
+   "title": "vLLM: Qwen2-VL / Qwen3-VL video samplers bound on request-controlled max_frames, which the num_frames ceiling does not reach",
+   "affected_products": [
+    {
+     "name": "vllm",
+     "version_constraints": [
+      [
+       "affected",
+       "==>= 0.24.0, < 0.30.0"
+      ]
+     ],
+     "cpes": []
+    }
+   ],
+   "packages": {
+    "vllm": {
+     "channels": {
+      "nixos-26.05": {
+       "major_version": null,
+       "status": null,
+       "updated": null,
+       "uniform_versions": false,
+       "src_position": null,
+       "sub_branches": {
+        "nixos-26.05-small": {
+         "version": "0.16.0",
+         "status": "unknown",
+         "src_position": "https://github.com/NixOS/nixpkgs/blob/c7ec7112449cb9c4b864b53b539b633d943298f8/pkgs/development/python-modules/vllm/default.nix#L586",
+         "updated": "2026-10-07T05:17:02.225928Z"
+        }
+       }
+      },
+      "nixos-unstable": {
+       "major_version": null,
+       "status": null,
+       "updated": null,
+       "uniform_versions": false,
+       "src_position": null,
+       "sub_branches": {
+        "nixos-unstable-small": {
+         "version": "0.28.0",
+         "status": "unknown",
+         "src_position": "https://github.com/NixOS/nixpkgs/blob/ac1faec44836a722f7b003834f367486ff9adfd1/pkgs/development/python-modules/vllm/default.nix#L720",
+         "updated": "2026-10-07T04:27:24.727017Z"
+        }
+       }
+      }
+     },
+     "derivation_ids": [
+      238733025,
+      239005648,
+      239005649
+     ],
+     "description": "High-throughput and memory-efficient inference and serving engine for LLMs"
+    },
+    "pkgsRocm.vllm": {
+     "channels": {
+      "nixos-26.05": {
+       "major_version": null,
+       "status": null,
+       "updated": null,
+       "uniform_versions": false,
+       "src_position": null,
+       "sub_branches": {
+        "nixos-26.05-small": {
+         "version": "0.16.0",
+         "status": "unknown",
+         "src_position": "https://github.com/NixOS/nixpkgs/blob/c7ec7112449cb9c4b864b53b539b633d943298f8/pkgs/development/python-modules/vllm/default.nix#L586",
+         "updated": "2026-10-07T05:17:02.225928Z"
+        }
+       }
+      },
+      "nixos-unstable": {
+       "major_version": null,
+       "status": null,
+       "updated": null,
+       "uniform_versions": false,
+       "src_position": null,
+       "sub_branches": {
+        "nixos-unstable-small": {
+         "version": "0.28.0",
+         "status": "unknown",
+         "src_position": "https://github.com/NixOS/nixpkgs/blob/ac1faec44836a722f7b003834f367486ff9adfd1/pkgs/development/python-modules/vllm/default.nix#L720",
+         "updated": "2026-10-07T04:27:24.727017Z"
+        }
+       }
+      }
+     },
+     "derivation_ids": [
+      238631359,
+      238884305
+     ],
+     "description": "High-throughput and memory-efficient inference and serving engine for LLMs"
+    },
+    "python313Packages.vllm": {
+     "channels": {
+      "nixos-26.05": {
+       "major_version": null,
+       "status": null,
+       "updated": null,
+       "uniform_versions": false,
+       "src_position": null,
+       "sub_branches": {
+        "nixos-26.05-small": {
+         "version": "0.16.0",
+         "status": "unknown",
+         "src_position": "https://github.com/NixOS/nixpkgs/blob/c7ec7112449cb9c4b864b53b539b633d943298f8/pkgs/development/python-modules/vllm/default.nix#L586",
+         "updated": "2026-10-07T05:17:02.225928Z"
+        }
+       }
+      },
+      "nixos-unstable": {
+       "major_version": null,
+       "status": null,
+       "updated": null,
+       "uniform_versions": false,
+       "src_position": null,
+       "sub_branches": {
+        "nixos-unstable-small": {
+         "version": "0.28.0",
+         "status": "unknown",
+         "src_position": "https://github.com/NixOS/nixpkgs/blob/ac1faec44836a722f7b003834f367486ff9adfd1/pkgs/development/python-modules/vllm/default.nix#L720",
+         "updated": "2026-10-07T04:27:24.727017Z"
+        }
+       }
+      }
+     },
+     "derivation_ids": [
+      238667883,
+      238928376,
+      238928377
+     ],
+     "description": "High-throughput and memory-efficient inference and serving engine for LLMs"
+    },
+    "pkgsRocm.python3Packages.vllm": {
+     "channels": {
+      "nixos-26.05": {
+       "major_version": null,
+       "status": null,
+       "updated": null,
+       "uniform_versions": false,
+       "src_position": null,
+       "sub_branches": {
+        "nixos-26.05-small": {
+         "version": "0.16.0",
+         "status": "unknown",
+         "src_position": "https://github.com/NixOS/nixpkgs/blob/c7ec7112449cb9c4b864b53b539b633d943298f8/pkgs/development/python-modules/vllm/default.nix#L586",
+         "updated": "2026-10-07T05:17:02.225928Z"
+        }
+       }
+      }
+     },
+     "derivation_ids": [
+      238884235
+     ],
+     "description": null
+    }
+   },
+   "metrics": [
+    {
+     "format": "cvssV3_1",
+     "base_score": 5.3,
+     "base_severity": "MEDIUM"
+    }
+   ]
+  }
+ ]
+}

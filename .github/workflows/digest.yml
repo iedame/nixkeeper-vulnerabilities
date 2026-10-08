@@ -1,0 +1,43 @@
+name: "Digest: vulnerability sources"
+
+# Keeps the digest (the data branch: data/vulnerabilities.json.gz,
+# data/meta.json and data/state.json.gz) up to date with what the
+# vulnerability sources say about nixpkgs packages. Hourly, each source is
+# read as far as one run goes, slowly (one request every 2 seconds): the
+# NixOS security tracker's published suggestions and issues
+# (nixkeeper_vulnerabilities/tracker.py says how much a run reads). The data
+# branch is main plus one commit with the digest (scripts/data-branch.sh).
+
+on:
+  schedule:
+    - cron: '41 * * * *'  # hourly, off the hour and off the other digests' minutes
+  workflow_dispatch: {}    # lets you trigger a run manually from the Actions tab
+
+# One run at a time: a run waits for the last instead of cancelling it.
+concurrency:
+  group: data-branch
+  cancel-in-progress: false
+
+permissions:
+  contents: write  # publishes the data branch
+
+jobs:
+  digest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+
+      - name: Restore the last published digest, on main
+        run: bash scripts/data-branch.sh restore
+
+      # The runner's Python 3: the digest uses the standard library only.
+      - name: Bring the digest up to date
+        run: python3 -m nixkeeper_vulnerabilities data
+
+      - name: Publish the digest if it changed
+        run: |
+          bash scripts/data-branch.sh publish "digest: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
