@@ -10,24 +10,39 @@ from datetime import UTC, datetime
 from . import digest, osv, tracker
 
 
+def check_token(directory):
+    """`--check-token`: fail (1) when the published meta.json says the
+    tracker token was refused or couldn't be renewed, so the workflow's run
+    fails and GitHub tells its owner; the digest is published either way."""
+    trouble = tracker.token_trouble(digest.read_meta(directory))
+    if trouble:
+        print(f"::error::{trouble}", file=sys.stderr)
+        return 1
+    print("The tracker token is fine (or none is set).")
+    return 0
+
+
 def main(argv=None):
     argv = sys.argv[1:] if argv is None else argv
+    if argv and argv[0] == "--check-token":
+        return check_token(argv[1] if len(argv) > 1 else "data")
     directory = argv[0] if argv else "data"
-    now = datetime.now(UTC).isoformat(timespec="seconds")
+    started = datetime.now(UTC)
+    now = started.isoformat(timespec="seconds")
     state = digest.read_state(directory)
     state.pop("format", None)
     meta = digest.read_meta(directory)
     meta.pop("format", None)
 
     part = state.setdefault("tracker", {})
-    try:
-        pages = tracker.update(part)
-        read_at = now
-        print(f"Security tracker: read {pages} pages.")
-    except (urllib.error.URLError, OSError, ValueError, KeyError) as e:
-        # What was read before the failure stays; the rest, next run.
-        read_at = meta.get("tracker", {}).get("readAt")
-        print(f"::warning::Security tracker: stopped reading ({e})", file=sys.stderr)
+    # What was read before a failure stays; the rest, next run.
+    asker = tracker.Asker()
+    asker.renew(started)
+    pages, errors = tracker.update(part, asker)
+    read_at = now if pages else meta.get("tracker", {}).get("readAt")
+    print(f"Security tracker: read {pages} pages.")
+    for error in errors:
+        print(f"::warning::Security tracker: stopped reading {error}", file=sys.stderr)
     found = tracker.digest(part)
     meta["tracker"] = {
         "readAt": read_at,
@@ -35,6 +50,8 @@ def main(argv=None):
         "issues": len(found["issues"]),
         "packages": len(found["packages"]),
         "complete": tracker.complete(part),
+        **({"stopped": errors} if errors else {}),
+        **asker.meta(),
         "pass": {
             "suggestions": part.get("suggestionsPass"),
             "issues": part.get("issuesPass"),

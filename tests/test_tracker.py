@@ -1,9 +1,11 @@
 import copy
+import io
 import json
 import os
 import tempfile
 import unittest
 import urllib.error
+from datetime import UTC, datetime
 from unittest import mock
 from urllib.parse import parse_qs, urlparse
 
@@ -143,6 +145,113 @@ class Passes(unittest.TestCase):
         self.assertIn("5", state["suggestions"])
         tracker.update(state, fake)
         self.assertNotIn("5", state["suggestions"])
+
+    def test_issues_read_when_suggestions_stop(self):
+        fake = Fake(made(5), [{"code": "NIXPKGS-1", "status": "A", "title": "t"}])
+
+        def get(url):
+            if "suggestions" in url:
+                raise urllib.error.HTTPError(url, 429, "Too Many Requests", None, None)
+            return fake(url)
+
+        state = {}
+        pages, errors = tracker.update(state, get)
+        self.assertEqual(pages, 1)  # the issues' page
+        self.assertIn("NIXPKGS-1", state["issues"])
+        self.assertEqual(len(errors), 1)
+        self.assertTrue(errors[0].startswith("suggestions:"))
+
+    def test_a_refused_token_goes_on_without_it(self):
+        fake = Fake(SAMPLE)
+
+        def get_json(url, token=None):
+            if token:
+                raise fetch.TokenRefused("401 Unauthorized")
+            return fake(url)
+
+        asker = tracker.Asker("old")
+        with (
+            mock.patch.object(tracker.fetch, "get_json", get_json),
+            mock.patch("sys.stderr", io.StringIO()),
+        ):
+            self.assertEqual(asker("https://x/api/v1/suggestions?page=1")["count"], 3)
+            self.assertEqual(asker.said(), "refused")
+            self.assertIsNone(asker.token)  # not tried again this run
+        self.assertIsNone(tracker.Asker("").said())  # none set
+        self.assertEqual(tracker.Asker("t").said(), "used")
+
+    def renew(self, expiry, refuse=False):
+        """An Asker's renew() against a tracker whose token expires then;
+        what was asked, and the Asker."""
+        asked = []
+
+        def get_json(url, token=None, method="GET"):
+            asked.append(method)
+            if refuse:
+                raise fetch.TokenRefused("401 Unauthorized")
+            if method == "PATCH":
+                return {"expiry": "2026-11-07T12:00:00+00:00"}
+            return {"expiry": expiry}
+
+        asker = tracker.Asker("t")
+        with (
+            mock.patch.object(tracker.fetch, "get_json", get_json),
+            mock.patch("sys.stderr", io.StringIO()),
+            mock.patch("builtins.print"),
+        ):
+            asker.renew(datetime(2026, 10, 8, 12, tzinfo=UTC))
+        return asked, asker
+
+    def test_renewed_a_week_before_it_expires(self):
+        asked, asker = self.renew("2026-10-12T00:00:00+00:00")
+        self.assertEqual(asked, ["GET", "PATCH"])
+        self.assertEqual(
+            asker.meta(),
+            {"token": "used", "tokenExpiry": "2026-11-07", "tokenRenewal": "renewed"},
+        )
+        asked, asker = self.renew("2026-11-01T00:00:00+00:00")  # far off
+        self.assertEqual(asked, ["GET"])
+        self.assertEqual(asker.meta(), {"token": "used", "tokenExpiry": "2026-11-01"})
+
+    def test_refused_on_renewal_is_dropped(self):
+        _, asker = self.renew("x", refuse=True)
+        self.assertIsNone(asker.token)
+        self.assertEqual(asker.meta(), {"token": "refused"})
+
+    def test_a_failed_renewal_keeps_the_token(self):
+        _, asker = self.renew("not a date")
+        self.assertEqual(asker.token, "t")
+        self.assertEqual(asker.meta()["tokenRenewal"], "failed")
+
+    def test_trouble_fails_the_run(self):
+        self.assertIsNone(tracker.token_trouble({}))  # no token: fine
+        self.assertIsNone(tracker.token_trouble({"tracker": {"token": "used"}}))
+        self.assertIn(
+            "refused", tracker.token_trouble({"tracker": {"token": "refused"}})
+        )
+        failed = {
+            "tracker": {
+                "token": "used",
+                "tokenRenewal": "failed",
+                "tokenExpiry": "2026-10-12",
+            }
+        }
+        self.assertIn("2026-10-12", tracker.token_trouble(failed))
+        with tempfile.TemporaryDirectory() as d:
+            digest.write(d, {}, {}, {"tracker": {"token": "refused"}})
+            with mock.patch("sys.stderr", io.StringIO()):
+                self.assertEqual(cli.main(["--check-token", d]), 1)
+            digest.write(d, {}, {}, {"tracker": {"token": "used"}})
+            with mock.patch("builtins.print"):
+                self.assertEqual(cli.main(["--check-token", d]), 0)
+
+    def test_a_token_reads_more_of_the_first_pass(self):
+        fake = Fake(made(45))
+        fake.token = "t"  # as an Asker with a token
+        state = {}
+        with mock.patch.object(tracker, "TOKEN_BACKFILL_PAGES", 5):
+            tracker.update(state, fake)
+        self.assertEqual(len(state["suggestions"]), 45)  # all 5 pages in one run
 
     def test_by_package(self):
         state = {}

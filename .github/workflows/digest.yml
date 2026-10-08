@@ -3,7 +3,8 @@ name: "Digest: vulnerability sources"
 # Keeps the digest (the data branch: data/vulnerabilities.json.gz,
 # data/meta.json and data/state.json.gz) up to date with what the
 # vulnerability sources say about nixpkgs packages. Hourly, each source is
-# read as far as one run goes, slowly (one request every 2 seconds): the
+# read as far as one run goes, slowly (one request every 2.5 seconds: the
+# tracker allows 30 a minute without an account): the
 # NixOS security tracker's published suggestions and issues
 # (nixkeeper_vulnerabilities/tracker.py says how much a run reads), and
 # OSV's advisories for language packages, each archive only when it changed
@@ -39,7 +40,17 @@ jobs:
       # The runner's Python 3: the digest uses the standard library only.
       - name: Bring the digest up to date
         run: python3 -m nixkeeper_vulnerabilities data
+        env:
+          # Optional: an account's API token for the NixOS security tracker
+          # (120 requests a minute instead of 30); empty when not set, and
+          # an expired one is dropped (README, "A tracker token").
+          NIXKEEPER_TRACKER_TOKEN: ${{ secrets.NIXKEEPER_TRACKER_TOKEN }}
 
       - name: Publish the digest if it changed
         run: |
           bash scripts/data-branch.sh publish "digest: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+      # After publishing: a refused or unrenewable tracker token fails the
+      # run (GitHub tells its owner), the digest already out, read without it.
+      - name: Check the tracker token
+        run: python3 -m nixkeeper_vulnerabilities --check-token data

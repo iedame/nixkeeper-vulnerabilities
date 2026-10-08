@@ -27,7 +27,10 @@ CVEs for nixpkgs.
   half a day); after that, the newest pages each run until one brings
   nothing new, and a slow rotation through the rest (3 pages a run, about
   a week a pass). Issues are small and rotate 15 pages a run (about a day
-  a pass). One request every 2 seconds, with a User-Agent linking here.
+  a pass). One request every 2.5 seconds, 24 a minute: the tracker allows
+  30 a minute without an account, and answers more with 429 (then the
+  digest waits as long as it says and asks again). If one list can't be
+  read further, the other still is. User-Agent linking here.
 
 - **[OSV](https://osv.dev)**, for language packages: the advisories of
   PyPI, Hackage, CRAN, RubyGems and opam (OSV's per-ecosystem archives),
@@ -98,7 +101,10 @@ On the `data` branch:
   when each source was last read (`readAt`), how many suggestions, issues
   and packages the digest has, whether every list has been read through
   at least once (`complete`; until then the digest has only part of it),
-  and where the reading is (`pass`); for OSV, the nixpkgs index it
+  where the reading is (`pass`), what stopped the last run's reading, if
+  anything did (`stopped`), and with a token, whether it was `used` or
+  `refused`, when it expires and whether it was renewed (`token`,
+  `tokenExpiry`, `tokenRenewal`; see "A tracker token"); for OSV, the nixpkgs index it
   matched (`nixpkgsIndexedAt`), how many nixpkgs packages are in the sets
   it covers (`inSets`), each ecosystem's advisories for nixpkgs' names
   (`ecosystems`), and how many packages and advisories match.
@@ -108,6 +114,37 @@ The data branch is main plus one commit holding `data/`
 (`scripts/data-branch.sh`), replaced each run, so no history piles up. A
 source that can't be read keeps what the digest had; nixkeeper falls back to
 Repology's flag for anything the digest doesn't cover.
+
+## A tracker token
+
+Without an account, the NixOS security tracker answers 30 requests a
+minute, and the digest reads at 24. With an account's API token it allows
+120, and the digest reads at about 100 (and more of the first pass a run:
+150 pages instead of 40). Optional, for a first pass or a fork that wants
+it sooner:
+
+1. Sign in to the [tracker](https://tracker.security.nixos.org) (with
+   GitHub) and create a token at
+   [/user/tokens](https://tracker.security.nixos.org/user/tokens). The
+   tracker shows it once, and allows one per account: creating another
+   replaces it.
+2. Add it to the repository as the Actions secret
+   `NIXKEEPER_TRACKER_TOKEN` (Settings → Secrets and variables →
+   Actions). The workflow passes it to the digest, which sends it to the
+   tracker only.
+
+A token lasts 30 days, and the digest keeps it alive: each run asks when
+it expires, and within a week of that extends it by 30 days from now (the
+tracker allows that with the token itself). So it only stops working if
+it's revoked or replaced (creating another at `/user/tokens` replaces
+it), or the digest doesn't run for a month. Then the run goes on without
+it at 24 a minute, the digest is published, and the workflow's last step
+("Check the tracker token") fails the run, so GitHub tells you; it fails
+too when the token couldn't be extended, saying when it expires.
+`meta.json`'s `tracker` says `token` (`used` or `refused`), `tokenExpiry`,
+and `tokenRenewal` when it was extended (`renewed`) or couldn't be
+(`failed`). Run locally with it: `NIXKEEPER_TRACKER_TOKEN=... python3 -m
+nixkeeper_vulnerabilities data`.
 
 ## Running it
 

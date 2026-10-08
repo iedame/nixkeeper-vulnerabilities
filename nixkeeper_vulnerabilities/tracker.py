@@ -22,15 +22,38 @@ didn't move a suggestion to the front. Issues, small, rotate ISSUE_PAGES a
 run (about a day a pass). Something not seen for two whole passes is gone
 (the list moves while it's read, so one pass can miss an item)."""
 
+import os
+import sys
+import urllib.error
+from datetime import datetime, timedelta
+
 from . import fetch
 
+# An account's API token, when the tracker gives one
+# (https://tracker.security.nixos.org/user/tokens): the workflow's secret
+# of that name.
+TOKEN_ENV = "NIXKEEPER_TRACKER_TOKEN"
+
+# What stops reading a list (the tracker refusing or not answering, an
+# answer that isn't what's expected): the rest is read next run.
+READ_ERRORS = (urllib.error.URLError, OSError, ValueError, KeyError)
+
 TRACKER_URL = "https://tracker.security.nixos.org"
+# The token's own expiry (GET), and extending it by 30 days from now
+# (PATCH): the tracker allows it with the token itself.
+TOKEN_URL = f"{TRACKER_URL}/api/v1/tokens/me"
+# Extended when this close to expiring: a day of failing runs or a week of
+# none still leaves it valid.
+RENEW_WITHIN = timedelta(days=7)
 SUGGESTIONS = f"{TRACKER_URL}/api/v1/suggestions?status=published"
 ISSUES = f"{TRACKER_URL}/api/v1/issues"
 # The channel nixkeeper follows.
 CHANNEL = "nixos-unstable"
 
 BACKFILL_PAGES = 40
+# With a token (NIXKEEPER_TRACKER_TOKEN: four times the requests a minute),
+# the first pass reads more a run: about 3 runs instead of 11.
+TOKEN_BACKFILL_PAGES = 150
 HEAD_PAGES = 5
 ROTATE_PAGES = 3
 ISSUE_PAGES = 15
@@ -136,13 +159,105 @@ def forget_unseen(found, cycle):
         del found[key]
 
 
+class Asker:
+    """Asks the tracker (fetch.get_json) with an account's API token when
+    there is one (token, else NIXKEEPER_TRACKER_TOKEN; sent to the tracker
+    only): 120 requests a minute instead of 30. A refused token (expired:
+    tokens last 30 days) is dropped for the rest of the run, which goes on
+    without it."""
+
+    def __init__(self, token=None):
+        self.token = token if token is not None else os.environ.get(TOKEN_ENV)
+        self.refused = False
+        self.expiry = None
+        self.renewal = None  # "renewed", "failed", or None (not needed)
+
+    def _refused(self, e):
+        print(
+            f"::warning::Security tracker: the token was refused ({e}): "
+            "going on without it, 30 requests a minute",
+            file=sys.stderr,
+        )
+        self.token, self.refused = None, True
+
+    def renew(self, now):
+        """Keep the token alive: when it expires within RENEW_WITHIN, extend
+        it (30 days from now). A token refused here is dropped as when
+        reading; any other failure leaves it as it is, renewal "failed"."""
+        if not self.token:
+            return
+        try:
+            info = fetch.get_json(TOKEN_URL, self.token)
+            expiry = datetime.fromisoformat(info["expiry"])
+            if expiry - now < RENEW_WITHIN:
+                info = fetch.get_json(TOKEN_URL, self.token, method="PATCH")
+                expiry = datetime.fromisoformat(info["expiry"])
+                self.renewal = "renewed"
+                print(f"Security tracker: token extended to {expiry:%Y-%m-%d}.")
+            self.expiry = expiry
+        except fetch.TokenRefused as e:
+            self._refused(e)
+        except (urllib.error.URLError, OSError, ValueError, KeyError) as e:
+            self.renewal = "failed"
+            print(
+                f"::warning::Security tracker: couldn't renew the token ({e})",
+                file=sys.stderr,
+            )
+
+    def __call__(self, url):
+        if self.token:
+            try:
+                return fetch.get_json(url, self.token)
+            except fetch.TokenRefused as e:
+                self._refused(e)
+        return fetch.get_json(url)
+
+    def said(self):
+        """What meta.json says of the token: "used", "refused", or None
+        (none set)."""
+        return "refused" if self.refused else "used" if self.token else None
+
+    def meta(self):
+        """meta.json's token fields: "token", and while it's used, its
+        "tokenExpiry" and, when tried this run, "tokenRenewal"."""
+        if not self.said():
+            return {}
+        return {
+            "token": self.said(),
+            **({"tokenExpiry": f"{self.expiry:%Y-%m-%d}"} if self.expiry else {}),
+            **({"tokenRenewal": self.renewal} if self.renewal else {}),
+        }
+
+
+def token_trouble(meta):
+    """What's wrong with the tracker token, by meta.json (refused, or not
+    renewed), for the workflow to fail its run on; None when nothing is
+    (or no token is set)."""
+    tracker = meta.get("tracker") or {}
+    if tracker.get("token") == "refused":
+        return (
+            "the tracker token was refused (expired, revoked or replaced): "
+            f"create one at {TRACKER_URL}/user/tokens and update the "
+            f"{TOKEN_ENV} secret; the digest goes on at 30 requests a minute"
+        )
+    if tracker.get("tokenRenewal") == "failed":
+        return (
+            "the tracker token couldn't be renewed: it expires on "
+            f"{tracker.get('tokenExpiry') or 'an unknown day'}"
+        )
+    return None
+
+
 def update(state, get=None):
     """Bring the tracker's part of state up to date (as far as this run
     goes): {"suggestions": {id: ...}, "issues": {code: ...}, and where each
     list's passes are}, asking with get (fetch.get_json, looked up when
-    called). Returns how many pages were read, or raises (what was read so
-    far stays in state)."""
-    get = get or fetch.get_json
+    called). Returns (how many pages were read, what stopped a list): a list
+    that can't be read further keeps what was read of it, and the other is
+    still read."""
+    get = get or Asker()
+    backfill = TOKEN_BACKFILL_PAGES if getattr(get, "token", None) else BACKFILL_PAGES
+    errors = []
     found = state.setdefault("suggestions", {})
     issues = state.setdefault("issues", {})
     s_cycle = state.setdefault("suggestionsPass", {"n": 0, "page": 1})
@@ -158,25 +273,37 @@ def update(state, get=None):
             changed = True
         found[key] = {**kept, "seen": s_cycle["n"]}
 
-    if s_cycle["n"] == 0:  # the first pass: read what it takes, a run at a time
-        read += walk(get, SUGGESTIONS, s_cycle, BACKFILL_PAGES, take_suggestion)
-    else:
-        # The newest first, until a page brings nothing new.
-        head = {"n": s_cycle["n"], "page": 1}
-        for _ in range(HEAD_PAGES):
-            changed = False
-            read += walk(get, SUGGESTIONS, head, 1, take_suggestion)
-            if not changed or head["page"] == 1:  # nothing new, or the end
-                break
-        read += walk(get, SUGGESTIONS, s_cycle, ROTATE_PAGES, take_suggestion)
-        forget_unseen(found, s_cycle)
+    def counted(*args):
+        nonlocal read
+        pages = walk(*args)
+        read += pages
+        return pages
+
+    try:
+        if s_cycle["n"] == 0:  # the first pass: what it takes, a run at a time
+            counted(get, SUGGESTIONS, s_cycle, backfill, take_suggestion)
+        else:
+            # The newest first, until a page brings nothing new.
+            head = {"n": s_cycle["n"], "page": 1}
+            for _ in range(HEAD_PAGES):
+                changed = False
+                counted(get, SUGGESTIONS, head, 1, take_suggestion)
+                if not changed or head["page"] == 1:  # nothing new, or the end
+                    break
+            counted(get, SUGGESTIONS, s_cycle, ROTATE_PAGES, take_suggestion)
+            forget_unseen(found, s_cycle)
+    except READ_ERRORS as e:
+        errors.append(f"suggestions: {e}")
 
     def take_issue(i):
         issues[i["code"]] = {**issue(i), "seen": i_cycle["n"]}
 
-    read += walk(get, ISSUES, i_cycle, ISSUE_PAGES, take_issue)
-    forget_unseen(issues, i_cycle)
-    return read
+    try:
+        counted(get, ISSUES, i_cycle, ISSUE_PAGES, take_issue)
+        forget_unseen(issues, i_cycle)
+    except READ_ERRORS as e:
+        errors.append(f"issues: {e}")
+    return read, errors
 
 
 def digest(state):
