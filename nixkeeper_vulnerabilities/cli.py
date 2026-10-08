@@ -20,14 +20,12 @@ def main(argv=None):
     meta.pop("format", None)
 
     part = state.setdefault("tracker", {})
-    try:
-        pages = tracker.update(part)
-        read_at = now
-        print(f"Security tracker: read {pages} pages.")
-    except (urllib.error.URLError, OSError, ValueError, KeyError) as e:
-        # What was read before the failure stays; the rest, next run.
-        read_at = meta.get("tracker", {}).get("readAt")
-        print(f"::warning::Security tracker: stopped reading ({e})", file=sys.stderr)
+    # What was read before a failure stays; the rest, next run.
+    pages, errors = tracker.update(part)
+    read_at = now if pages else meta.get("tracker", {}).get("readAt")
+    print(f"Security tracker: read {pages} pages.")
+    for error in errors:
+        print(f"::warning::Security tracker: stopped reading {error}", file=sys.stderr)
     found = tracker.digest(part)
     meta["tracker"] = {
         "readAt": read_at,
@@ -35,6 +33,7 @@ def main(argv=None):
         "issues": len(found["issues"]),
         "packages": len(found["packages"]),
         "complete": tracker.complete(part),
+        **({"stopped": errors} if errors else {}),
         "pass": {
             "suggestions": part.get("suggestionsPass"),
             "issues": part.get("issuesPass"),

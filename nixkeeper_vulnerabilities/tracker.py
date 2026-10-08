@@ -22,7 +22,13 @@ didn't move a suggestion to the front. Issues, small, rotate ISSUE_PAGES a
 run (about a day a pass). Something not seen for two whole passes is gone
 (the list moves while it's read, so one pass can miss an item)."""
 
+import urllib.error
+
 from . import fetch
+
+# What stops reading a list (the tracker refusing or not answering, an
+# answer that isn't what's expected): the rest is read next run.
+READ_ERRORS = (urllib.error.URLError, OSError, ValueError, KeyError)
 
 TRACKER_URL = "https://tracker.security.nixos.org"
 SUGGESTIONS = f"{TRACKER_URL}/api/v1/suggestions?status=published"
@@ -140,9 +146,11 @@ def update(state, get=None):
     """Bring the tracker's part of state up to date (as far as this run
     goes): {"suggestions": {id: ...}, "issues": {code: ...}, and where each
     list's passes are}, asking with get (fetch.get_json, looked up when
-    called). Returns how many pages were read, or raises (what was read so
-    far stays in state)."""
+    called). Returns (how many pages were read, what stopped a list): a list
+    that can't be read further keeps what was read of it, and the other is
+    still read."""
     get = get or fetch.get_json
+    errors = []
     found = state.setdefault("suggestions", {})
     issues = state.setdefault("issues", {})
     s_cycle = state.setdefault("suggestionsPass", {"n": 0, "page": 1})
@@ -158,25 +166,37 @@ def update(state, get=None):
             changed = True
         found[key] = {**kept, "seen": s_cycle["n"]}
 
-    if s_cycle["n"] == 0:  # the first pass: read what it takes, a run at a time
-        read += walk(get, SUGGESTIONS, s_cycle, BACKFILL_PAGES, take_suggestion)
-    else:
-        # The newest first, until a page brings nothing new.
-        head = {"n": s_cycle["n"], "page": 1}
-        for _ in range(HEAD_PAGES):
-            changed = False
-            read += walk(get, SUGGESTIONS, head, 1, take_suggestion)
-            if not changed or head["page"] == 1:  # nothing new, or the end
-                break
-        read += walk(get, SUGGESTIONS, s_cycle, ROTATE_PAGES, take_suggestion)
-        forget_unseen(found, s_cycle)
+    def counted(*args):
+        nonlocal read
+        pages = walk(*args)
+        read += pages
+        return pages
+
+    try:
+        if s_cycle["n"] == 0:  # the first pass: what it takes, a run at a time
+            counted(get, SUGGESTIONS, s_cycle, BACKFILL_PAGES, take_suggestion)
+        else:
+            # The newest first, until a page brings nothing new.
+            head = {"n": s_cycle["n"], "page": 1}
+            for _ in range(HEAD_PAGES):
+                changed = False
+                counted(get, SUGGESTIONS, head, 1, take_suggestion)
+                if not changed or head["page"] == 1:  # nothing new, or the end
+                    break
+            counted(get, SUGGESTIONS, s_cycle, ROTATE_PAGES, take_suggestion)
+            forget_unseen(found, s_cycle)
+    except READ_ERRORS as e:
+        errors.append(f"suggestions: {e}")
 
     def take_issue(i):
         issues[i["code"]] = {**issue(i), "seen": i_cycle["n"]}
 
-    read += walk(get, ISSUES, i_cycle, ISSUE_PAGES, take_issue)
-    forget_unseen(issues, i_cycle)
-    return read
+    try:
+        counted(get, ISSUES, i_cycle, ISSUE_PAGES, take_issue)
+        forget_unseen(issues, i_cycle)
+    except READ_ERRORS as e:
+        errors.append(f"issues: {e}")
+    return read, errors
 
 
 def digest(state):

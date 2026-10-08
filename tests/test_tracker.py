@@ -144,6 +144,21 @@ class Passes(unittest.TestCase):
         tracker.update(state, fake)
         self.assertNotIn("5", state["suggestions"])
 
+    def test_issues_read_when_suggestions_stop(self):
+        fake = Fake(made(5), [{"code": "NIXPKGS-1", "status": "A", "title": "t"}])
+
+        def get(url):
+            if "suggestions" in url:
+                raise urllib.error.HTTPError(url, 429, "Too Many Requests", None, None)
+            return fake(url)
+
+        state = {}
+        pages, errors = tracker.update(state, get)
+        self.assertEqual(pages, 1)  # the issues' page
+        self.assertIn("NIXPKGS-1", state["issues"])
+        self.assertEqual(len(errors), 1)
+        self.assertTrue(errors[0].startswith("suggestions:"))
+
     def test_by_package(self):
         state = {}
         tracker.update(state, Fake(SAMPLE))

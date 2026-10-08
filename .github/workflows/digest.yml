@@ -3,7 +3,8 @@ name: "Digest: vulnerability sources"
 # Keeps the digest (the data branch: data/vulnerabilities.json.gz,
 # data/meta.json and data/state.json.gz) up to date with what the
 # vulnerability sources say about nixpkgs packages. Hourly, each source is
-# read as far as one run goes, slowly (one request every 2 seconds): the
+# read as far as one run goes, slowly (one request every 2.5 seconds: the
+# tracker allows 30 a minute without an account): the
 # NixOS security tracker's published suggestions and issues
 # (nixkeeper_vulnerabilities/tracker.py says how much a run reads), and
 # OSV's advisories for language packages, each archive only when it changed

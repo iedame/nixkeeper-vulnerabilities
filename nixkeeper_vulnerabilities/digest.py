@@ -39,11 +39,12 @@ summary, severity and CVSS vector when given, and the ecosystem and name;
 and by attribute, which.
 
 data/meta.json: {"format": 1, "tracker": {"readAt", "suggestions",
-"issues", "packages", "complete", "pass"}, "osv": {"readAt",
+"issues", "packages", "complete", "pass", "stopped"?}, "osv": {"readAt",
 "nixpkgsIndexedAt", "inSets", "ecosystems", "packages", "advisories"}}:
 when the tracker was last read from, how many of each the digest has,
 whether every list has been read through at least once (until then, the
-digest has only part of it), and where the reading is; when OSV was last
+digest has only part of it), where the reading is, and what stopped the
+last run's reading of a list, if anything did; when OSV was last
 read, the nixpkgs index it matched, how many nixpkgs packages are in the
 sets it covers, each ecosystem's advisories for nixpkgs' names, and how
 many packages and advisories match.

@@ -27,7 +27,10 @@ CVEs for nixpkgs.
   half a day); after that, the newest pages each run until one brings
   nothing new, and a slow rotation through the rest (3 pages a run, about
   a week a pass). Issues are small and rotate 15 pages a run (about a day
-  a pass). One request every 2 seconds, with a User-Agent linking here.
+  a pass). One request every 2.5 seconds, 24 a minute: the tracker allows
+  30 a minute without an account, and answers more with 429 (then the
+  digest waits as long as it says and asks again). If one list can't be
+  read further, the other still is. User-Agent linking here.
 
 - **[OSV](https://osv.dev)**, for language packages: the advisories of
   PyPI, Hackage, CRAN, RubyGems and opam (OSV's per-ecosystem archives),
@@ -98,7 +101,8 @@ On the `data` branch:
   when each source was last read (`readAt`), how many suggestions, issues
   and packages the digest has, whether every list has been read through
   at least once (`complete`; until then the digest has only part of it),
-  and where the reading is (`pass`); for OSV, the nixpkgs index it
+  where the reading is (`pass`), and what stopped the last run's reading,
+  if anything did (`stopped`); for OSV, the nixpkgs index it
   matched (`nixpkgsIndexedAt`), how many nixpkgs packages are in the sets
   it covers (`inSets`), each ecosystem's advisories for nixpkgs' names
   (`ecosystems`), and how many packages and advisories match.
