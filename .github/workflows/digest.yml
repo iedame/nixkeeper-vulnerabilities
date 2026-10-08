@@ -5,7 +5,9 @@ name: "Digest: vulnerability sources"
 # vulnerability sources say about nixpkgs packages. Hourly, each source is
 # read as far as one run goes, slowly (one request every 2 seconds): the
 # NixOS security tracker's published suggestions and issues
-# (nixkeeper_vulnerabilities/tracker.py says how much a run reads). The data
+# (nixkeeper_vulnerabilities/tracker.py says how much a run reads), and
+# OSV's advisories for language packages, each archive only when it changed
+# (osv.py). The data
 # branch is main plus one commit with the digest (scripts/data-branch.sh).
 
 on:
