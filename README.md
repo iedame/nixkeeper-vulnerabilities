@@ -89,7 +89,10 @@ On the `data` branch:
   record gives (so a newer nixpkgs version can be checked against them
   without asking again), and each package's version and status
   (`affected`, `unaffected`, `unknown`) on nixos-unstable, as the tracker
-  last evaluated it (`version` null when the channel's branches differ).
+  last evaluated it (`version` null when the channel's branches differ;
+  both null for an older suggestion's packages, which the tracker no longer
+  evaluates on a channel: the issue's status and the version ranges still
+  say whether they're affected).
   `packages` lists the suggestions naming each package. Issue status:
   `affected`, `notAffected`, `notForUs`, `wontFix` or `unknown`.
 

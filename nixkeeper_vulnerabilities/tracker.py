@@ -58,6 +58,10 @@ HEAD_PAGES = 5
 ROTATE_PAGES = 3
 ISSUE_PAGES = 15
 
+# The state's version: 2 keeps the packages of suggestions the tracker no
+# longer evaluates on a channel (1 left them out), so a state of 1 is read
+# again from the start.
+VERSION = 2
 # A package's status on a channel, when its sub-branches differ: the worst.
 RANK = {"unaffected": 0, "unknown": 1, "affected": 2}
 # Issue statuses, as the API gives them.
@@ -104,10 +108,13 @@ def suggestion(s):
     title, severity, the affected products' version constraints as the CVE
     record gives them (so a reader can check a newer nixpkgs version
     itself), and its packages on CHANNEL."""
-    packages = {}
-    for attr, package in sorted((s.get("packages") or {}).items()):
-        if found := on_channel(package):
-            packages[attr] = found
+    # Every package it names: an older suggestion's have no channel data
+    # any more (the tracker stops evaluating them), but are its packages
+    # still: version and status null.
+    packages = {
+        attr: on_channel(package) or {"version": None, "status": None}
+        for attr, package in sorted((s.get("packages") or {}).items())
+    }
     return {
         "cve": s.get("cve_id"),
         "issue": s.get("issue_code"),
@@ -260,6 +267,11 @@ def update(state, get=None):
     errors = []
     found = state.setdefault("suggestions", {})
     issues = state.setdefault("issues", {})
+    if state.get("version", 1) < VERSION:
+        # Read before older suggestions' packages were kept: read them all
+        # again (what was read stays meanwhile).
+        state["suggestionsPass"] = {"n": 0, "page": 1}
+    state["version"] = VERSION
     s_cycle = state.setdefault("suggestionsPass", {"n": 0, "page": 1})
     i_cycle = state.setdefault("issuesPass", {"n": 0, "page": 1})
     read = 0

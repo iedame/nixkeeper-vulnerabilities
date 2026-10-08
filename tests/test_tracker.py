@@ -87,6 +87,14 @@ class Reading(unittest.TestCase):
         said = package({"version": "1", "status": "affected"}, status="unaffected")
         self.assertEqual(tracker.on_channel(said)["status"], "unaffected")
 
+    def test_packages_without_channel_data_kept(self):
+        old = copy.deepcopy(SAMPLE[0])
+        old["packages"]["aspell"]["channels"] = {}  # no longer evaluated
+        self.assertEqual(
+            tracker.suggestion(old)["packages"],
+            {"aspell": {"version": None, "status": None}},
+        )
+
     def test_no_score(self):
         self.assertEqual(tracker.severity([]), {})
         self.assertEqual(
@@ -133,6 +141,18 @@ class Passes(unittest.TestCase):
         sugg = [u for u in fake.asked if "suggestions" in u]
         self.assertEqual(len(sugg), 2 + tracker.ROTATE_PAGES)
         self.assertTrue(heads)
+
+    def test_an_older_state_is_read_again(self):
+        fake = Fake(made(45))  # 5 pages
+        state = {"suggestionsPass": {"n": 3, "page": 2}}  # version 1's
+        with mock.patch.object(tracker, "BACKFILL_PAGES", 1):
+            tracker.update(state, fake)
+            self.assertEqual(state["version"], tracker.VERSION)
+            # Back to a first pass, from page 1, a backfill's pages a run.
+            self.assertEqual(state["suggestionsPass"], {"n": 0, "page": 2})
+            self.assertIn(tracker.page_url(tracker.SUGGESTIONS, 1), fake.asked)
+            tracker.update(state, fake)  # now version 2: not again
+            self.assertEqual(state["suggestionsPass"]["page"], 3)
 
     def test_gone_after_two_passes_unseen(self):
         fake = Fake(made(5))
