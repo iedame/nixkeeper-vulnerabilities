@@ -11,7 +11,11 @@ data/vulnerabilities.json.gz:
                    "affected": [{"product": "Aspell",
                                  "versions": [["affected", "<0.60.8.3"]]}],
                    "packages": {"aspell": {"version": "0.60.8.2",
-                                           "status": "affected"}}}},
+                                           "status": "affected",
+                                           "branch": "master",
+                                           "branches": {
+                                             "master": {...},
+                                             "release-26.05": {...}}}}}},
        "issues": {
          "NIXPKGS-2026-2925": {
            "title": "...", "status": "affected",
@@ -30,10 +34,11 @@ data/vulnerabilities.json.gz:
 The NixOS security tracker's published suggestions (tracker.py): by id,
 each one's CVE, its issue (in "issues" once read: their pass is slower),
 severity (the newest CVSS version's score, when the CVE has one), the
-version ranges the CVE record gives, and its packages on nixos-unstable
-with the tracker's verdict there (version: null when the channel's
-branches differ; both null for an older suggestion's packages, which the
-tracker no longer evaluates on a channel); and by package, the
+version ranges the CVE record gives, and its packages with the tracker's
+verdict on nixos-unstable, or else nixpkgs master ("branch": its git
+branches since 2026-10-08; both null when it has none for either), and
+on every branch it evaluated ("branches": master, release-26.05, ...); and
+by package (without "branches"), the
 suggestions naming it. OSV's advisories for language packages (osv.py)
 that some nixpkgs package's version matches: their aliases and CVEs
 (CRAN's from "upstream" too), a summary, severity and CVSS vector when

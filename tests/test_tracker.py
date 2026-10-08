@@ -87,6 +87,40 @@ class Reading(unittest.TestCase):
         said = package({"version": "1", "status": "affected"}, status="unaffected")
         self.assertEqual(tracker.on_channel(said)["status"], "unaffected")
 
+    def test_branches_since_2026_10_08(self):
+        # The tracker's shape since it evaluates git branches: master's.
+        with open(os.path.join(HERE, "suggestions-branches.json")) as f:
+            branches = json.load(f)["results"]
+        got = tracker.suggestion(branches[0])
+        for found in got["packages"].values():
+            self.assertEqual(found["branch"], "master")
+            self.assertIn(found["status"], tracker.RANK)
+            self.assertTrue(found["version"])
+        both = {
+            "branches": {
+                "master": {"version": "2", "status": "affected"},
+                "nixos-unstable": {"version": "1", "status": "unaffected"},
+            }
+        }
+        found = tracker.on_channel(both)
+        self.assertEqual(  # the channel nixkeeper follows, when listed
+            {k: found[k] for k in ("version", "status", "branch")},
+            {"version": "1", "status": "unaffected", "branch": "nixos-unstable"},
+        )
+        self.assertEqual(set(found["branches"]), {"master", "nixos-unstable"})
+        # Every branch, whatever the release is called: the stable one says
+        # whether a fix still has to be backported.
+        miniupnpd = got["packages"]["miniupnpd"]
+        self.assertEqual(set(miniupnpd["branches"]), {"master", "release-26.05"})
+        self.assertEqual(miniupnpd["branches"]["release-26.05"]["status"], "affected")
+        # Only on a release branch: no verdict for unstable, the branch kept.
+        only = tracker.on_channel(
+            {"branches": {"release-26.11": {"version": "3", "status": "affected"}}}
+        )
+        self.assertEqual((only["status"], only["branch"]), (None, None))
+        self.assertEqual(only["branches"]["release-26.11"]["status"], "affected")
+        self.assertIsNone(tracker.on_channel({"branches": {}}))
+
     def test_packages_without_channel_data_kept(self):
         old = copy.deepcopy(SAMPLE[0])
         old["packages"]["aspell"]["channels"] = {}  # no longer evaluated
@@ -281,6 +315,15 @@ class Passes(unittest.TestCase):
             [s["suggestion"] for s in found["packages"]["aspell"]], ["48625", "48729"]
         )
         self.assertNotIn("seen", found["suggestions"]["48625"])
+        # Each branch's status in the suggestion, not repeated by package.
+        state = {}
+        with open(os.path.join(HERE, "suggestions-branches.json")) as f:
+            tracker.update(state, Fake(json.load(f)["results"]))
+        found = tracker.digest(state)
+        self.assertNotIn("branches", found["packages"]["miniupnpd"][0])
+        self.assertIn(
+            "branches", found["suggestions"]["49914"]["packages"]["miniupnpd"]
+        )
 
 
 def not_published(url, etag=None):

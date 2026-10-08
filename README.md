@@ -19,7 +19,7 @@ CVEs for nixpkgs.
   each match; accepted ones are published as issues (`NIXPKGS-2026-2925`,
   each with a GitHub issue on nixpkgs). Read through its public API, no
   account: published suggestions (CVE, severity, affected version ranges,
-  packages and their status on nixos-unstable) and issues (status, GitHub
+  packages and their status on nixpkgs master) and issues (status, GitHub
   issue).
 
   A page of suggestions is large (~700 KB for ten), so they're read
@@ -71,10 +71,12 @@ On the `data` branch:
                                "title": "Heap Buffer Overflow in GNU Aspell's prezip utility",
                                "score": 1.8, "severity": "low", "cvss": "cvssV4_0",
                                "affected": [{"product": "Aspell", "versions": [["affected", "<0.60.8.3"]]}],
-                               "packages": {"aspell": {"version": "0.60.8.2", "status": "affected"}}}},
+                               "packages": {"aspell": {"version": "0.60.8.2", "status": "affected", "branch": "master",
+                                                       "branches": {"master": {"version": "0.60.8.2", "status": "affected"},
+                                                                    "release-26.05": {"version": "0.60.8.2", "status": "affected"}}}}}},
      "issues": {"NIXPKGS-2026-2925": {"title": "...", "status": "affected",
                                       "github": "https://github.com/NixOS/nixpkgs/issues/571389"}},
-     "packages": {"aspell": [{"suggestion": "48625", "version": "0.60.8.2", "status": "affected"}]}},
+     "packages": {"aspell": [{"suggestion": "48625", "version": "0.60.8.2", "status": "affected", "branch": "master"}]}},
    "osv": {
      "advisories": {"PYSEC-2023-74": {"aliases": ["CVE-2023-32681", "GHSA-j8r2-6x86-q33q"],
                                       "cves": ["CVE-2023-32681"], "summary": "...",
@@ -88,11 +90,17 @@ On the `data` branch:
   version's score, when the CVE has one), the version ranges the CVE
   record gives (so a newer nixpkgs version can be checked against them
   without asking again), and each package's version and status
-  (`affected`, `unaffected`, `unknown`) on nixos-unstable, as the tracker
-  last evaluated it (`version` null when the channel's branches differ;
-  both null for an older suggestion's packages, which the tracker no longer
-  evaluates on a channel: the issue's status and the version ranges still
-  say whether they're affected).
+  (`affected`, `unaffected`, `unknown`) as the tracker last evaluated it,
+  and on which `branch`: nixos-unstable when it lists it, else nixpkgs
+  master, which nixos-unstable is built from (since 2026-10-08 the tracker
+  evaluates git branches, master and the release branches, instead of
+  channels). Both null when the tracker has no status for it on either:
+  the issue's status and the version ranges still say whether it's
+  affected. `branches` has its version and status on every branch the
+  tracker evaluated (master and the release branches, by name, so the next
+  release's appears by itself): whether a stable release is still affected,
+  a fix to backport. The by-package list leaves `branches` out (it's in the
+  suggestion).
   `packages` lists the suggestions naming each package. Issue status:
   `affected`, `notAffected`, `notForUs`, `wontFix` or `unknown`.
 
