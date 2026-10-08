@@ -32,11 +32,12 @@ each one's CVE, its issue (in "issues" once read: their pass is slower),
 severity (the newest CVSS version's score, when the CVE has one), the
 version ranges the CVE record gives, and its packages on nixos-unstable
 with the tracker's verdict there (version: null when the channel's
-branches differ); and by package, the suggestions naming it. OSV's
-advisories for language packages (osv.py) that some nixpkgs package's
-version matches: their aliases and CVEs (CRAN's from "upstream" too), a
-summary, severity and CVSS vector when given, and the ecosystem and name;
-and by attribute, which.
+branches differ; both null for an older suggestion's packages, which the
+tracker no longer evaluates on a channel); and by package, the
+suggestions naming it. OSV's advisories for language packages (osv.py)
+that some nixpkgs package's version matches: their aliases and CVEs
+(CRAN's from "upstream" too), a summary, severity and CVSS vector when
+given, and the ecosystem and name; and by attribute, which.
 
 data/meta.json: {"format": 1, "tracker": {"readAt", "suggestions",
 "issues", "packages", "complete", "pass", "stopped"?, "token"?, "tokenExpiry"?,
