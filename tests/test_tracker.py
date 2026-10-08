@@ -1,4 +1,5 @@
 import copy
+import io
 import json
 import os
 import tempfile
@@ -158,6 +159,33 @@ class Passes(unittest.TestCase):
         self.assertIn("NIXPKGS-1", state["issues"])
         self.assertEqual(len(errors), 1)
         self.assertTrue(errors[0].startswith("suggestions:"))
+
+    def test_a_refused_token_goes_on_without_it(self):
+        fake = Fake(SAMPLE)
+
+        def get_json(url, token=None):
+            if token:
+                raise fetch.TokenRefused("401 Unauthorized")
+            return fake(url)
+
+        asker = tracker.Asker("old")
+        with (
+            mock.patch.object(tracker.fetch, "get_json", get_json),
+            mock.patch("sys.stderr", io.StringIO()),
+        ):
+            self.assertEqual(asker("https://x/api/v1/suggestions?page=1")["count"], 3)
+            self.assertEqual(asker.said(), "refused")
+            self.assertIsNone(asker.token)  # not tried again this run
+        self.assertIsNone(tracker.Asker("").said())  # none set
+        self.assertEqual(tracker.Asker("t").said(), "used")
+
+    def test_a_token_reads_more_of_the_first_pass(self):
+        fake = Fake(made(45))
+        fake.token = "t"  # as an Asker with a token
+        state = {}
+        with mock.patch.object(tracker, "TOKEN_BACKFILL_PAGES", 5):
+            tracker.update(state, fake)
+        self.assertEqual(len(state["suggestions"]), 45)  # all 5 pages in one run
 
     def test_by_package(self):
         state = {}

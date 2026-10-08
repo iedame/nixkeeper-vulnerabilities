@@ -57,6 +57,31 @@ class TooOften(unittest.TestCase):
             self.get([gone, Answer(b"{}")])
 
 
+class Token(unittest.TestCase):
+    def test_sent_as_bearer_at_the_faster_pace(self):
+        sent, paused = [], []
+        with (
+            mock.patch.object(
+                fetch.urllib.request,
+                "urlopen",
+                side_effect=lambda req, timeout: sent.append(req) or Answer(b"{}"),
+            ),
+            mock.patch.object(fetch, "_pace", side_effect=paused.append),
+        ):
+            REAL["get_json"]("https://x", "secret")
+        self.assertEqual(sent[0].get_header("Authorization"), "Bearer secret")
+        self.assertEqual(paused, [fetch.TOKEN_PAUSE])
+
+    def test_refused(self):
+        expired = urllib.error.HTTPError("https://x", 401, "Unauthorized", None, None)
+        with (
+            mock.patch.object(fetch.urllib.request, "urlopen", side_effect=[expired]),
+            mock.patch.object(fetch, "_pace"),
+            self.assertRaises(fetch.TokenRefused),
+        ):
+            REAL["get_json"]("https://x", "old")
+
+
 class Pace(unittest.TestCase):
     def test_under_the_trackers_limit(self):
         self.assertLessEqual(60 / fetch.PAUSE, 25)  # it allows 30 a minute

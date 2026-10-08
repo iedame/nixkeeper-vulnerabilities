@@ -22,9 +22,16 @@ didn't move a suggestion to the front. Issues, small, rotate ISSUE_PAGES a
 run (about a day a pass). Something not seen for two whole passes is gone
 (the list moves while it's read, so one pass can miss an item)."""
 
+import os
+import sys
 import urllib.error
 
 from . import fetch
+
+# An account's API token, when the tracker gives one
+# (https://tracker.security.nixos.org/user/tokens): the workflow's secret
+# of that name.
+TOKEN_ENV = "NIXKEEPER_TRACKER_TOKEN"
 
 # What stops reading a list (the tracker refusing or not answering, an
 # answer that isn't what's expected): the rest is read next run.
@@ -37,6 +44,9 @@ ISSUES = f"{TRACKER_URL}/api/v1/issues"
 CHANNEL = "nixos-unstable"
 
 BACKFILL_PAGES = 40
+# With a token (NIXKEEPER_TRACKER_TOKEN: four times the requests a minute),
+# the first pass reads more a run: about 3 runs instead of 11.
+TOKEN_BACKFILL_PAGES = 150
 HEAD_PAGES = 5
 ROTATE_PAGES = 3
 ISSUE_PAGES = 15
@@ -142,6 +152,36 @@ def forget_unseen(found, cycle):
         del found[key]
 
 
+class Asker:
+    """Asks the tracker (fetch.get_json) with an account's API token when
+    there is one (token, else NIXKEEPER_TRACKER_TOKEN; sent to the tracker
+    only): 120 requests a minute instead of 30. A refused token (expired:
+    tokens last 30 days) is dropped for the rest of the run, which goes on
+    without it."""
+
+    def __init__(self, token=None):
+        self.token = token if token is not None else os.environ.get(TOKEN_ENV)
+        self.refused = False
+
+    def __call__(self, url):
+        if self.token:
+            try:
+                return fetch.get_json(url, self.token)
+            except fetch.TokenRefused as e:
+                print(
+                    f"::warning::Security tracker: the token was refused ({e}): "
+                    "going on without it, 30 requests a minute",
+                    file=sys.stderr,
+                )
+                self.token, self.refused = None, True
+        return fetch.get_json(url)
+
+    def said(self):
+        """What meta.json says of the token: "used", "refused", or None
+        (none set)."""
+        return "refused" if self.refused else "used" if self.token else None
+
+
 def update(state, get=None):
     """Bring the tracker's part of state up to date (as far as this run
     goes): {"suggestions": {id: ...}, "issues": {code: ...}, and where each
@@ -149,7 +189,8 @@ def update(state, get=None):
     called). Returns (how many pages were read, what stopped a list): a list
     that can't be read further keeps what was read of it, and the other is
     still read."""
-    get = get or fetch.get_json
+    get = get or Asker()
+    backfill = TOKEN_BACKFILL_PAGES if getattr(get, "token", None) else BACKFILL_PAGES
     errors = []
     found = state.setdefault("suggestions", {})
     issues = state.setdefault("issues", {})
@@ -174,7 +215,7 @@ def update(state, get=None):
 
     try:
         if s_cycle["n"] == 0:  # the first pass: what it takes, a run at a time
-            counted(get, SUGGESTIONS, s_cycle, BACKFILL_PAGES, take_suggestion)
+            counted(get, SUGGESTIONS, s_cycle, backfill, take_suggestion)
         else:
             # The newest first, until a page brings nothing new.
             head = {"n": s_cycle["n"], "page": 1}

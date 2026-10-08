@@ -40,6 +40,11 @@ jobs:
       # The runner's Python 3: the digest uses the standard library only.
       - name: Bring the digest up to date
         run: python3 -m nixkeeper_vulnerabilities data
+        env:
+          # Optional: an account's API token for the NixOS security tracker
+          # (120 requests a minute instead of 30); empty when not set, and
+          # an expired one is dropped (README, "A tracker token").
+          NIXKEEPER_TRACKER_TOKEN: ${{ secrets.NIXKEEPER_TRACKER_TOKEN }}
 
       - name: Publish the digest if it changed
         run: |

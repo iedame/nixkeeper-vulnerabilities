@@ -21,7 +21,8 @@ def main(argv=None):
 
     part = state.setdefault("tracker", {})
     # What was read before a failure stays; the rest, next run.
-    pages, errors = tracker.update(part)
+    asker = tracker.Asker()
+    pages, errors = tracker.update(part, asker)
     read_at = now if pages else meta.get("tracker", {}).get("readAt")
     print(f"Security tracker: read {pages} pages.")
     for error in errors:
@@ -34,6 +35,7 @@ def main(argv=None):
         "packages": len(found["packages"]),
         "complete": tracker.complete(part),
         **({"stopped": errors} if errors else {}),
+        **({"token": asker.said()} if asker.said() else {}),
         "pass": {
             "suggestions": part.get("suggestionsPass"),
             "issues": part.get("issuesPass"),

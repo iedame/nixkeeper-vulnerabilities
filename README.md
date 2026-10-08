@@ -101,8 +101,9 @@ On the `data` branch:
   when each source was last read (`readAt`), how many suggestions, issues
   and packages the digest has, whether every list has been read through
   at least once (`complete`; until then the digest has only part of it),
-  where the reading is (`pass`), and what stopped the last run's reading,
-  if anything did (`stopped`); for OSV, the nixpkgs index it
+  where the reading is (`pass`), what stopped the last run's reading, if
+  anything did (`stopped`), and whether its token was `used` or `refused`
+  (`token`, when one is set); for OSV, the nixpkgs index it
   matched (`nixpkgsIndexedAt`), how many nixpkgs packages are in the sets
   it covers (`inSets`), each ecosystem's advisories for nixpkgs' names
   (`ecosystems`), and how many packages and advisories match.
@@ -112,6 +113,30 @@ The data branch is main plus one commit holding `data/`
 (`scripts/data-branch.sh`), replaced each run, so no history piles up. A
 source that can't be read keeps what the digest had; nixkeeper falls back to
 Repology's flag for anything the digest doesn't cover.
+
+## A tracker token
+
+Without an account, the NixOS security tracker answers 30 requests a
+minute, and the digest reads at 24. With an account's API token it allows
+120, and the digest reads at about 100 (and more of the first pass a run:
+150 pages instead of 40). Optional, for a first pass or a fork that wants
+it sooner:
+
+1. Sign in to the [tracker](https://tracker.security.nixos.org) (with
+   GitHub) and create a token at
+   [/user/tokens](https://tracker.security.nixos.org/user/tokens). The
+   tracker shows it once, and allows one per account: creating another
+   replaces it.
+2. Add it to the repository as the Actions secret
+   `NIXKEEPER_TRACKER_TOKEN` (Settings → Secrets and variables →
+   Actions). The workflow passes it to the digest, which sends it to the
+   tracker only.
+
+A token lasts 30 days. When it's refused (expired, or replaced), the run
+goes on without it at 24 a minute, and `meta.json`'s `tracker.token` says
+`refused` (`used` while it works): nothing breaks, it's only slower. Run
+locally with it: `NIXKEEPER_TRACKER_TOKEN=... python3 -m
+nixkeeper_vulnerabilities data`.
 
 ## Running it
 
