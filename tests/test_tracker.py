@@ -3,10 +3,11 @@ import json
 import os
 import tempfile
 import unittest
+import urllib.error
 from unittest import mock
 from urllib.parse import parse_qs, urlparse
 
-from nixkeeper_vulnerabilities import cli, digest, tracker
+from nixkeeper_vulnerabilities import cli, digest, fetch, tracker
 
 HERE = os.path.dirname(__file__)
 with open(os.path.join(HERE, "suggestions-page.json")) as f:
@@ -153,7 +154,17 @@ class Passes(unittest.TestCase):
         self.assertNotIn("seen", found["suggestions"]["48625"])
 
 
+def not_published(url, etag=None):
+    """nixkeeper-versions' nixpkgs.json.gz not there yet: OSV waits."""
+    raise urllib.error.HTTPError(url, 404, "Not Found", {}, None)
+
+
 class Run(unittest.TestCase):
+    def setUp(self):
+        patcher = mock.patch.object(fetch, "get_file", not_published)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
     def test_published_and_the_same_bytes(self):
         with tempfile.TemporaryDirectory() as d:
             with mock.patch.object(tracker.fetch, "get_json", Fake(SAMPLE)):

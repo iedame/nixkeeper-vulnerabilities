@@ -29,11 +29,31 @@ CVEs for nixpkgs.
   a week a pass). Issues are small and rotate 15 pages a run (about a day
   a pass). One request every 2 seconds, with a User-Agent linking here.
 
-Planned, one at a time: [OSV](https://osv.dev) for language packages
-(PyPI, crates.io, npm, Go, Hackage...) and by source repository and tag
-(its `GIT` ecosystem); NVD for packages whose nixpkgs metadata declares a
-CPE. nixpkgs' own `meta.knownVulnerabilities` stays in nixkeeper, which
-already downloads it.
+- **[OSV](https://osv.dev)**, for language packages: the advisories of
+  PyPI, Hackage, CRAN, RubyGems and opam (OSV's per-ecosystem archives),
+  matched to nixpkgs' package sets (python3*Packages, haskellPackages,
+  rPackages, rubyPackages*, ocamlPackages) by name, as each ecosystem
+  compares names, and by exact version: a package matches an advisory that
+  lists its version as affected. nixpkgs' names and versions come from
+  [nixkeeper-versions](https://github.com/iedame/nixkeeper-versions)'
+  `nixpkgs.json.gz` (from the channel's package index). Each archive is
+  downloaded only when it changed (its ETag), or when nixpkgs' file did;
+  of it, only the advisories for names nixpkgs has are kept. An advisory
+  with no fixed version lists every release as affected, so it matches
+  newer ones too, even when its text says it was fixed (older PyPI ones):
+  weaker than the tracker's verdict. On 2026-10-08: 79,063 packages in
+  those sets, 262 matching 406 advisories. Not covered: OSV's ecosystems
+  nixpkgs doesn't package as a set of registry packages: Hex (nixpkgs'
+  `beam*Packages` hold the Elixir/Erlang toolchain, not Hex's libraries),
+  npm (`nodePackages` is being removed), crates.io and Go (libraries are
+  vendored per package); `osv.py`'s `SETS` says how to add one should
+  that change.
+
+Planned: OSV by source repository and tag or commit (its `GIT` ecosystem,
+for packages outside the language sets, from nixkeeper-versions' `src`);
+NVD for packages whose nixpkgs metadata declares a CPE. nixpkgs' own
+`meta.knownVulnerabilities` stays in nixkeeper, which already downloads
+it.
 
 ## The digest
 
@@ -51,7 +71,13 @@ On the `data` branch:
                                "packages": {"aspell": {"version": "0.60.8.2", "status": "affected"}}}},
      "issues": {"NIXPKGS-2026-2925": {"title": "...", "status": "affected",
                                       "github": "https://github.com/NixOS/nixpkgs/issues/571389"}},
-     "packages": {"aspell": [{"suggestion": "48625", "version": "0.60.8.2", "status": "affected"}]}}}
+     "packages": {"aspell": [{"suggestion": "48625", "version": "0.60.8.2", "status": "affected"}]}},
+   "osv": {
+     "advisories": {"PYSEC-2023-74": {"aliases": ["CVE-2023-32681", "GHSA-j8r2-6x86-q33q"],
+                                      "cves": ["CVE-2023-32681"], "summary": "...",
+                                      "severity": "moderate", "cvss": "CVSS:3.1/...",
+                                      "ecosystem": "PyPI", "package": "requests"}},
+     "packages": {"python313Packages.requests": ["PYSEC-2023-74"]}}}
   ```
 
   The tracker's published suggestions by id: the CVE, its issue (in
@@ -63,11 +89,19 @@ On the `data` branch:
   last evaluated it (`version` null when the channel's branches differ).
   `packages` lists the suggestions naming each package. Issue status:
   `affected`, `notAffected`, `notForUs`, `wontFix` or `unknown`.
+
+  OSV's advisories that some nixpkgs package's version matches: their
+  aliases and CVEs (CRAN's from `upstream` too), a summary, the severity
+  and CVSS vector when the advisory gives them, and the ecosystem and
+  package name; `packages` lists, by attribute, the advisories it matches.
 - [`data/meta.json`](https://raw.githubusercontent.com/iedame/nixkeeper-vulnerabilities/data/data/meta.json):
   when each source was last read (`readAt`), how many suggestions, issues
   and packages the digest has, whether every list has been read through
   at least once (`complete`; until then the digest has only part of it),
-  and where the reading is (`pass`).
+  and where the reading is (`pass`); for OSV, the nixpkgs index it
+  matched (`nixpkgsIndexedAt`), how many nixpkgs packages are in the sets
+  it covers (`inSets`), each ecosystem's advisories for nixpkgs' names
+  (`ecosystems`), and how many packages and advisories match.
 - `data/state.json.gz`: what the reading keeps between runs.
 
 The data branch is main plus one commit holding `data/`
