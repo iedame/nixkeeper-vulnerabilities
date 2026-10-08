@@ -26,8 +26,8 @@ CVEs for nixpkgs.
   sparingly: the first time, 40 pages a run until all are read (about
   half a day); after that, the newest pages each run until one brings
   nothing new, and a slow rotation through the rest (3 pages a run, about
-  a week a pass). Issues are small and rotate 15 pages a run (about a day
-  a pass). One request every 2.5 seconds, 24 a minute: the tracker allows
+  a week a pass). Issues are small and rotate 15 pages a run (about a
+  day a pass; 60 with a token, about 5 runs). One request every 2.5 seconds, 24 a minute: the tracker allows
   30 a minute without an account, and answers more with 429 (then the
   digest waits as long as it says and asks again). If one list can't be
   read further, the other still is. User-Agent linking here.
@@ -130,9 +130,9 @@ Repology's flag for anything the digest doesn't cover.
 
 Without an account, the NixOS security tracker answers 30 requests a
 minute, and the digest reads at 24. With an account's API token it allows
-120, and the digest reads at about 100 (and more of the first pass a run:
-150 pages instead of 40). Optional, for a first pass or a fork that wants
-it sooner:
+120, and the digest reads at about 100 (and more a run: 150 pages of the
+first pass instead of 40, 60 of issues instead of 15). Optional, for a
+first pass or a fork that wants it sooner:
 
 1. Sign in to the [tracker](https://tracker.security.nixos.org) (with
    GitHub) and create a token at
