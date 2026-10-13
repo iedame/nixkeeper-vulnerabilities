@@ -32,7 +32,7 @@ import zipfile
 
 from . import fetch
 
-NIXPKGS_URL = "https://raw.githubusercontent.com/iedame/nixkeeper-versions/data/data/nixpkgs.json.gz"
+NIXPKGS_URL = "https://raw.githubusercontent.com/nixkeeper/digest-versions/data/data/nixpkgs.json.gz"
 OSV_URL = "https://osv-vulnerabilities.storage.googleapis.com"
 # Package sets and their OSV ecosystem: an attribute directly in the set
 # (python313Packages.requests, not python313Packages.requests.dist).

@@ -1,7 +1,7 @@
 # nixkeeper-vulnerabilities
 
 A digest of what vulnerability sources say about nixpkgs packages, for
-[nixkeeper](https://github.com/iedame/nixkeeper): one file nixkeeper
+[nixkeeper](https://github.com/nixkeeper/nixkeeper): one file nixkeeper
 downloads instead of asking each source about each package, kept up to
 date hourly by a workflow, read slowly and politely.
 
@@ -38,7 +38,7 @@ CVEs for nixpkgs.
   rPackages, rubyPackages*, ocamlPackages) by name, as each ecosystem
   compares names, and by exact version: a package matches an advisory that
   lists its version as affected. nixpkgs' names and versions come from
-  [nixkeeper-versions](https://github.com/iedame/nixkeeper-versions)'
+  [nixkeeper-versions](https://github.com/nixkeeper/digest-versions)'
   `nixpkgs.json.gz` (from the channel's package index). Each archive is
   downloaded only when it changed (its ETag), or when nixpkgs' file did;
   of it, only the advisories for names nixpkgs has are kept. An advisory
@@ -62,7 +62,7 @@ it.
 
 On the `data` branch:
 
-- [`data/vulnerabilities.json.gz`](https://raw.githubusercontent.com/iedame/nixkeeper-vulnerabilities/data/data/vulnerabilities.json.gz):
+- [`data/vulnerabilities.json.gz`](https://raw.githubusercontent.com/nixkeeper/digest-vulnerabilities/data/data/vulnerabilities.json.gz):
 
   ```json
   {"format": 1,
@@ -108,7 +108,7 @@ On the `data` branch:
   aliases and CVEs (CRAN's from `upstream` too), a summary, the severity
   and CVSS vector when the advisory gives them, and the ecosystem and
   package name; `packages` lists, by attribute, the advisories it matches.
-- [`data/meta.json`](https://raw.githubusercontent.com/iedame/nixkeeper-vulnerabilities/data/data/meta.json):
+- [`data/meta.json`](https://raw.githubusercontent.com/nixkeeper/digest-vulnerabilities/data/data/meta.json):
   when each source was last read (`readAt`), how many suggestions, issues
   and packages the digest has, whether every list has been read through
   at least once (`complete`; until then the digest has only part of it),
@@ -160,7 +160,7 @@ nixkeeper_vulnerabilities data`.
 ## Running it
 
 ```sh
-nix run github:iedame/nixkeeper-vulnerabilities -- data
+nix run github:nixkeeper/digest-vulnerabilities -- data
 ```
 
 or, in a checkout, `python3 -m nixkeeper_vulnerabilities data` (Python 3.11

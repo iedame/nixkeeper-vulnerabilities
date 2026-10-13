@@ -7,7 +7,7 @@ import urllib.error
 import urllib.request
 
 USER_AGENT = (
-    "nixkeeper-vulnerabilities (+https://github.com/iedame/nixkeeper-vulnerabilities)"
+    "nixkeeper-vulnerabilities (+https://github.com/nixkeeper/digest-vulnerabilities)"
 )
 # Seconds from one request to the next. Nothing here is in a hurry: a late
 # digest only leaves nixkeeper with what it had. The NixOS security tracker
