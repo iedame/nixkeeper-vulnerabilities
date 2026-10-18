@@ -1,0 +1,36 @@
+{
+  "format": 1,
+  "osv": {
+    "advisories": 422,
+    "ecosystems": {
+      "CRAN": 14,
+      "Hackage": 42,
+      "PyPI": 9294,
+      "RubyGems": 786,
+      "opam": 23
+    },
+    "inSets": 79105,
+    "nixpkgsIndexedAt": "2026-10-17T16:15:37+00:00",
+    "packages": 272,
+    "readAt": "2026-10-18T01:15:16+00:00"
+  },
+  "tracker": {
+    "complete": true,
+    "issues": 3094,
+    "packages": 1883,
+    "pass": {
+      "issues": {
+        "n": 49,
+        "page": 181
+      },
+      "suggestions": {
+        "n": 2,
+        "page": 364
+      }
+    },
+    "readAt": "2026-10-18T01:15:16+00:00",
+    "suggestions": 4608,
+    "token": "used",
+    "tokenExpiry": "2026-11-07"
+  }
+}
